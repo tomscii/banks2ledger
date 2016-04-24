@@ -28,31 +28,13 @@
 ;; - replace dates with degraded forms
 ;; - Split at '/' ',' and space
 (defn tokenize [str]
-  (->> (-> str
-           .toUpperCase
-           (clojure.string/replace #"20\d{6}" "YYYYMMDD")
-           (clojure.string/replace #"/\d{2}-\d{2}-\d{2}" "/YY-MM-DD")
-           (clojure.string/split #",|/| "))
-       (filter #(> (count %) 0))))
-
-;; Parse a ledger entry from string to map
-(defn parse-entry [entry]
-  (let [[first-line0 & rest-lines] (clojure.string/split entry #"\n")
-        first-line (clip-string "|" first-line0)
-        [date descr] (clojure.string/split first-line #" " 2)
-        toks (tokenize descr)
-        accs (->> rest-lines
-                  (map clojure.string/trim)
-                  (map (partial clip-string "  ")))]
-    {:date date :toks toks :accs accs}))
-
-;; Read and parse a ledger file; return map of accounts with
-;; values that are maps of token counts
-(defn parse-ledger [filename]
-  (->> (clojure.string/split (slurp filename) #"\n\n")
-       (filter #(> (count %) 0))
-       (map parse-entry)
-       (reduce toktab-update {})))
+  (->>
+   (-> str
+       .toUpperCase
+       (clojure.string/replace #"20\d{6}" "YYYYMMDD")
+       (clojure.string/replace #"/\d{2}-\d{2}-\d{2}" "/YY-MM-DD")
+       (clojure.string/split #",|/| "))
+   (filter #(> (count %) 0))))
 
 ;; P_occur is the occurrence probability of token among
 ;; all tokens recorded for account.
@@ -110,32 +92,74 @@
         p_tab (p_table acc-maps tokens)]
     (filter #(= false (.contains ^String (second %) account)) p_tab)))
 
+(defn decide-account [acc-maps descr account]
+  (let [accs (account-for-descr acc-maps descr account)]
+    (cond (empty? accs) "Unknown"
+          (= (first (first accs)) (first (second accs))) "Unknown"
+          :else (second (first accs)))))
 
-;; CL args spec and defaults
+;; Science up to this point. From here, only machinery.
+
+;; Parse a ledger entry from string to acc-map
+(defn parse-ledger-entry [entry]
+  (let [[first-line0 & rest-lines] (clojure.string/split entry #"\n")
+        first-line (clip-string "|" first-line0)
+        [date descr] (clojure.string/split first-line #" " 2)
+        toks (tokenize descr)
+        accs (->> rest-lines
+                  (map clojure.string/trim)
+                  (map (partial clip-string "  ")))]
+    {:date date :toks toks :accs accs}))
+
+;; Read and parse a ledger file; return acc-maps
+(defn parse-ledger [filename]
+  (->> (clojure.string/split (slurp filename) #"\n\n")
+       (filter #(> (count %) 0))
+       (map parse-ledger-entry)
+       (reduce toktab-update {})))
+
+;; command line args spec
 (def cl-args-spec
   {:ledger-file
    {:opt "-l" :value "ledger.dat"
     :help "Ledger file to get accounts and probabilities"}
+
    :csv-file
    {:opt "-f" :value "transactions.csv"
     :help "Input transactions in CSV format"}
+
    :account
    {:opt "-a" :value "Assets:Checking"
     :help "Originating account of transactions"}
+
    :csv-field-separator
    {:opt "-F" :value "," :help "CSV field separator"}
+
    :csv-skip-lines
-   {:opt "-s" :value 0 :help "CSV header lines to skip"}
+   {:opt "-s" :value 0 :conv-fun #(Integer. %)
+    :help "CSV header lines to skip"}
+
    :currency
    {:opt "-c" :value "SEK" :help "Currency"}
-   :date-col
-   {:opt "-d" :value 0 :help "Date column index (zero-based)"}
+
    :date-format
    {:opt "-D" :value "yyyy-MM-dd" :help "Format of date field in CSV file"}
+
+   :date-col
+   {:opt "-d" :value 0 :conv-fun #(Integer. %)
+    :help "Date column index (zero-based)"}
+
+   :ref-col
+   {:opt "-r" :value -1 :conv-fun #(Integer. %)
+    :help "Payment reference column index (zero-based)"}
+
    :amount-col
-   {:opt "-m" :value 1 :help "Amount column index (zero-based)"}
+   {:opt "-m" :value 2 :conv-fun #(Integer. %)
+    :help "Amount column index (zero-based)"}
+
    :descr-col
-   {:opt "-t" :value 2 :help "Text (descriptor) column index (zero-based)"}})
+   {:opt "-t" :value 3 :conv-fun #(Integer. %)
+    :help "Text (descriptor) column index (zero-based)"}})
 
 (defn print-usage-and-die [message]
   (println message)
@@ -149,6 +173,14 @@
 
 (defn optvec [args-spec]
   (into [] (map :opt (vals args-spec))))
+
+(defn get-arg [args-spec key]
+  (let [arg-spec (key args-spec)
+        conv-fun (:conv-fun arg-spec)
+        raw-value (:value arg-spec)]
+    (if (nil? conv-fun)
+      raw-value
+      (conv-fun raw-value))))
 
 (defn set-arg [args-spec arg value]
   (let [key (first (filter #(= arg (:opt (% args-spec)))
@@ -177,19 +209,77 @@
 (defn convert-date [args-spec datestr]
   (.format
    (java.text.SimpleDateFormat. "yyyy/MM/dd")
-   (.parse (java.text.SimpleDateFormat. (:value (:date-format args-spec)))
+   (.parse (java.text.SimpleDateFormat. (get-arg args-spec :date-format))
            datestr)))
+
+;; Convert amount string - note the return value is still a string!
+;; - strip anything that does not belong to the number
+;; - change decimal comma to dot
+(defn convert-amount [string]
+  (->>
+   (-> (re-find #"-?\d[\d ]+[,\.]?\d*" string)
+       (clojure.string/replace #"," ".")
+       (.replace " " "")
+       (Double.))
+   (format "%,.2f")))
+
+;; Remove quotes from start & end of the string, if both present
+(defn unquote-string [str]
+  (let [len (count str)
+        last (dec len)]
+    (cond (< len 3) str
+          (or (and (.startsWith str "'") (.endsWith str "'"))
+              (and (.startsWith str "\"") (.endsWith str "\"")))
+          (subs str 1 last)
+          :else str)))
+
+;; Parse a line of CSV into a map with :date :ref :amount :descr
+(defn parse-csv-entry [params string]
+  (let [cols (clojure.string/split string
+                  (re-pattern (get-arg params :csv-field-separator)))
+        ref-col (get-arg params :ref-col)]
+    {:date (convert-date params (nth cols (get-arg params :date-col)))
+     :ref (if (< ref-col 0) nil (unquote-string (nth cols ref-col)))
+     :amount (convert-amount (nth cols (get-arg params :amount-col)))
+     :descr (unquote-string (nth cols (get-arg params :descr-col)))}))
+
+;; Parse input CSV into a list of maps
+(defn parse-csv [params]
+  (->> (-> (slurp (get-arg params :csv-file))
+           (clojure.string/split #"\n")
+           (subvec (get-arg params :csv-skip-lines)))
+       (map clojure.string/trim-newline)
+       (map (partial parse-csv-entry params))))
+
+;; format and print a ledger entry to *out*
+(defn print-ledger-entry [params acc-maps
+                          {:keys [date ref amount descr] :as cm}]
+  (let [account (get-arg params :account)
+        counter-acc (decide-account acc-maps descr account)
+        currency (get-arg params :currency)]
+  (printf "%s " date)
+  (if (and ref (not (empty? ref))) (printf "(%s) " ref))
+  (println descr)
+  (if (= \- (first amount))
+    (do (printf "    %-38s%s %s\n" counter-acc currency (subs amount 1))
+        (printf "    %s\n" account))
+    (do (printf "    %-38s%s %s\n" account currency amount)
+        (printf "    %s\n" counter-acc)))
+  (println)))
 
 ;; Convert CSV of bank account transactions to corresponding ledger entries
 (defn -main [& args]
   (let [params (parse-args cl-args-spec args)
-        acc-maps (parse-ledger (:value (:ledger-file params)))]
+        acc-maps (parse-ledger (get-arg params :ledger-file))
+        csv-maps (parse-csv params)]
+    (doseq [cm csv-maps]
+      (print-ledger-entry params acc-maps cm))
+    (flush)))
 
-    ;; TODO read the CSV with the set params and generate Ledger entries
+;; (-main "-l" "/home/tom/doc/ledger/ledger.dat" "-f" "test/ica_adrienn_2016_03.csv" "-F" ";" "-s" "1" "-m" "4" "-t" "1" "-a" "Assets:ICA Adrienn")
+;; (-main "-l" "/home/tom/doc/ledger/ledger.dat" "-f" "test/seb_privatkonto_2016_03.csv" "-s" "5" "-r" "2" "-m" "4" "-t" "3" "-a" "Assets:SEB Privatkonto")
+;; (-main "-l" "/home/tom/doc/ledger/ledger.dat" "-f" "test/bp_folyoszamla_2016_03.csv" "-s" "3" "-D" "yyyy/MM/dd" "-r" "3" "-m" "4" "-t" "9" "-a" "Assets:BB Folyószámla" "-c" "HUF")
 
-    ;; this will be the meat of the converter
-    (println
-    (account-for-descr acc-maps "Forgalmi jutalék 01N00/702595/ számláról"
-                       (:value (:account params))))))
-
-;; run this with -l /home/tom/doc/ledger/ledger.dat -a "Assets:BB Folyószámla"
+;; $ lein run -l /home/tom/doc/ledger/ledger.dat -f test/ica_adrienn_2016_03.csv -F ";" -s 1 -m 4 -t 1 -a "Assets:ICA Adrienn"
+;; $ lein run -l /home/tom/doc/ledger/ledger.dat -f test/seb_privatkonto_2016_03.csv -s 5 -r 2 -m 4 -t 3 -a "Assets:SEB Privatkonto"
+;; $ lein run -l /home/tom/doc/ledger/ledger.dat -f test/bp_folyoszamla_2016_03.csv -s 3 -D "yyyy/MM/dd" -r 3 -m 4 -t 9 -a "Assets:BB Folyószámla" -c HUF
