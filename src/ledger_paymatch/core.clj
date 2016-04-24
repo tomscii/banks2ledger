@@ -233,10 +233,34 @@
           (subs str 1 last)
           :else str)))
 
+(defn all-indices-1 [str sub pos acc]
+  (let [idx (.indexOf str sub pos)]
+    (if (= idx -1)
+      acc
+      (all-indices-1 str sub (inc idx) (conj acc idx)))))
+
+;; Return an array of all indices where sub starts within str
+(defn all-indices [str sub]
+  (all-indices-1 str sub 0 []))
+
+;; Return a vector of columns split from csv line.
+;; NB: delimiters in quoted cells will not split the string
+(defn split-csv-line [str delim]
+  (let [delim-ixs (all-indices str delim)
+        quote-ixs (all-indices str "\"")
+        split-ixs (reduce
+                   (fn [acc [start end]]
+                     (filter #(not (and (< start %) (< % end))) acc))
+                   delim-ixs
+                   (partition 2 quote-ixs))
+        op-ixs (concat (list -1) split-ixs (list (dec (count str))))]
+    (into [] (map (fn [[s e]]
+                    (subs str (inc s) e))
+                  (partition 2 1 op-ixs)))))
+
 ;; Parse a line of CSV into a map with :date :ref :amount :descr
 (defn parse-csv-entry [params string]
-  (let [cols (clojure.string/split string
-                  (re-pattern (get-arg params :csv-field-separator)))
+  (let [cols (split-csv-line string (get-arg params :csv-field-separator))
         ref-col (get-arg params :ref-col)]
     {:date (convert-date params (nth cols (get-arg params :date-col)))
      :ref (if (< ref-col 0) nil (unquote-string (nth cols ref-col)))
