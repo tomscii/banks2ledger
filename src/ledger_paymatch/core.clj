@@ -174,6 +174,8 @@
 (defn optvec [args-spec]
   (into [] (map :opt (vals args-spec))))
 
+;; Get the value of an argument given by key.
+;; If present, apply converter function.
 (defn get-arg [args-spec key]
   (let [arg-spec (key args-spec)
         conv-fun (:conv-fun arg-spec)
@@ -253,7 +255,7 @@
                      (filter #(not (and (< start %) (< % end))) acc))
                    delim-ixs
                    (partition 2 quote-ixs))
-        op-ixs (concat (list -1) split-ixs (list (dec (count str))))]
+        op-ixs (concat (list -1) split-ixs (list (count str)))]
     (into [] (map (fn [[s e]]
                     (subs str (inc s) e))
                   (partition 2 1 op-ixs)))))
