@@ -135,9 +135,13 @@
    :csv-field-separator
    {:opt "-F" :value "," :help "CSV field separator"}
 
-   :csv-skip-lines
-   {:opt "-s" :value 0 :conv-fun #(Integer. %)
+   :csv-skip-header-lines
+   {:opt "-sa" :value 0 :conv-fun #(Integer. %)
     :help "CSV header lines to skip"}
+
+   :csv-skip-trailer-lines
+   {:opt "-sz" :value 0 :conv-fun #(Integer. %)
+    :help "CSV trailer lines to skip"}
 
    :currency
    {:opt "-c" :value "SEK" :help "Currency"}
@@ -158,8 +162,8 @@
     :help "Amount column index (zero-based)"}
 
    :descr-col
-   {:opt "-t" :value 3 :conv-fun #(Integer. %)
-    :help "Text (descriptor) column index (zero-based)"}})
+   {:opt "-t" :value "%3"
+    :help "Text (descriptor) column index specs (zero-based)"}})
 
 (defn print-usage-and-die [message]
   (println message)
@@ -245,6 +249,15 @@
 (defn all-indices [str sub]
   (all-indices-1 str sub 0 []))
 
+;; Split string at the list of supplied indices and return a
+;; list of substrings. Note that the sublists do not contain the
+;; characters at the indices, only those in between.
+(defn split-by-indices [str ixs]
+  (let [op-ixs (concat (list -1) ixs (list (count str)))]
+    (map (fn [[s e]]
+           (subs str (inc s) e))
+         (partition 2 1 op-ixs))))
+
 ;; Return a vector of columns split from csv line.
 ;; NB: delimiters in quoted cells will not split the string
 (defn split-csv-line [str delim]
@@ -254,11 +267,36 @@
                    (fn [acc [start end]]
                      (filter #(not (and (< start %) (< % end))) acc))
                    delim-ixs
-                   (partition 2 quote-ixs))
-        op-ixs (concat (list -1) split-ixs (list (count str)))]
-    (into [] (map (fn [[s e]]
-                    (subs str (inc s) e))
-                  (partition 2 1 op-ixs)))))
+                   (partition 2 quote-ixs))]
+    (into [] (split-by-indices str split-ixs))))
+
+;; Render a colspec to an actual string based on cols;
+;; return whitespace-trimmed version.
+(defn format-colspec [cols colspec]
+  (-> colspec
+      (clojure.string/replace #"\%(\d)*"
+             #(unquote-string (nth cols (Integer. (second %1)))))
+      (clojure.string/trim)))
+
+(defn get-col-1 [cols [spec & spec-list]]
+  (let [fmt (format-colspec cols spec)]
+    (if (or (> (count fmt) 0)
+            (empty? spec-list))
+      fmt
+      (get-col-1 cols spec-list))))
+
+;; Get column data from cols according to colspec, which is a string
+;; similar to a printf format string but allowing alternatives to be
+;; used if an earlier spec results in an empty string.
+;; "%4" - get fourth column
+;; "%4 %5" - get fourth and fifth column separated by a space
+;; "%4!%1 %2 %3!%7" - fourth column by default, but if that is empty,
+;;   (contains only whitespace) concatenate the first three columns;
+;;   if that is empty, take the seventh column.
+(defn get-col [cols colspec]
+  (let [delim-ixs (all-indices colspec "!")
+        spec-list (split-by-indices colspec delim-ixs)]
+    (get-col-1 cols spec-list)))
 
 ;; Parse a line of CSV into a map with :date :ref :amount :descr
 (defn parse-csv-entry [params string]
@@ -267,13 +305,19 @@
     {:date (convert-date params (nth cols (get-arg params :date-col)))
      :ref (if (< ref-col 0) nil (unquote-string (nth cols ref-col)))
      :amount (convert-amount (nth cols (get-arg params :amount-col)))
-     :descr (unquote-string (nth cols (get-arg params :descr-col)))}))
+     :descr (unquote-string (get-col cols (get-arg params :descr-col)))}))
+
+;; Drop the configured number of header and trailer lines
+(defn drop-lines [lines params]
+  (subvec lines
+          (get-arg params :csv-skip-header-lines)
+          (- (count lines) (get-arg params :csv-skip-trailer-lines))))
 
 ;; Parse input CSV into a list of maps
 (defn parse-csv [params]
   (->> (-> (slurp (get-arg params :csv-file))
            (clojure.string/split #"\n")
-           (subvec (get-arg params :csv-skip-lines)))
+           (drop-lines params))
        (map clojure.string/trim-newline)
        (map (partial parse-csv-entry params))))
 
@@ -301,11 +345,3 @@
     (doseq [cm csv-maps]
       (print-ledger-entry params acc-maps cm))
     (flush)))
-
-;; (-main "-l" "/home/tom/doc/ledger/ledger.dat" "-f" "test/ica_adrienn_2016_03.csv" "-F" ";" "-s" "1" "-m" "4" "-t" "1" "-a" "Assets:ICA Adrienn")
-;; (-main "-l" "/home/tom/doc/ledger/ledger.dat" "-f" "test/seb_privatkonto_2016_03.csv" "-s" "5" "-r" "2" "-m" "4" "-t" "3" "-a" "Assets:SEB Privatkonto")
-;; (-main "-l" "/home/tom/doc/ledger/ledger.dat" "-f" "test/bp_folyoszamla_2016_03.csv" "-s" "3" "-D" "yyyy/MM/dd" "-r" "3" "-m" "4" "-t" "9" "-a" "Assets:BB Folyószámla" "-c" "HUF")
-
-;; $ lein run -l /home/tom/doc/ledger/ledger.dat -f test/ica_adrienn_2016_03.csv -F ";" -s 1 -m 4 -t 1 -a "Assets:ICA Adrienn"
-;; $ lein run -l /home/tom/doc/ledger/ledger.dat -f test/seb_privatkonto_2016_03.csv -s 5 -r 2 -m 4 -t 3 -a "Assets:SEB Privatkonto"
-;; $ lein run -l /home/tom/doc/ledger/ledger.dat -f test/bp_folyoszamla_2016_03.csv -s 3 -D "yyyy/MM/dd" -r 3 -m 4 -t 9 -a "Assets:BB Folyószámla" -c HUF

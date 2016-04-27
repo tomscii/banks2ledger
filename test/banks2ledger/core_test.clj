@@ -109,7 +109,7 @@
 (deftest test-get-arg
   (testing "get-arg"
     (is (= (get-arg cl-args-spec :amount-col) 2))
-    (is (= (get-arg cl-args-spec :descr-col) 3))))
+    (is (= (get-arg cl-args-spec :descr-col) "%3"))))
 
 (deftest test-parse-args
   (testing "parse-args"
@@ -153,9 +153,33 @@
     (is (= (all-indices "abc,de,\"f,g,x\",hi,\"al,ma\"" ",")
            [3 6 9 11 14 17 21]))))
 
+(deftest test-split-by-indices
+  (testing "split-by-indices"
+    (is (= (split-by-indices "abc:def:gh:ij" '(3 7 10))
+           '("abc" "def" "gh" "ij")))))
+
 (deftest test-split-csv-line
   (testing "split-csv-line"
     (is (= (split-csv-line "abc,def,ghi" ",")
            ["abc" "def" "ghi"]))
     (is (= (split-csv-line "abc,de,\"f,g,x\",hi,\"al,ma\"" ",")
            ["abc" "de" "\"f,g,x\"" "hi" "\"al,ma\""]))))
+
+(deftest test-format-colspec
+  (testing "format-colspec"
+    (is (= (format-colspec ["1st" "2nd" "3rd"] "%0") "1st"))
+    (is (= (format-colspec ["1st" "2nd" "3rd"] "%0 %2") "1st 3rd"))
+    (is (= (format-colspec ["\"1st\"" "\"2nd\"" "\"3rd\""] "%0 %2") "1st 3rd"))
+    (is (= (format-colspec ["1st" "2nd" "3rd"] "%1-%0-%2") "2nd-1st-3rd"))
+    (is (= (format-colspec ["1st" "2nd" "   "] "%0 %2") "1st"))
+    (is (= (format-colspec ["1st" "2nd" "   "] "%0 %2 %1") "1st     2nd"))))
+
+(deftest test-get-col
+  (testing "get-col"
+    (is (= (get-col ["1st" "2nd" "3rd"] "%0") "1st"))
+    (is (= (get-col ["1st" "2nd" "3rd"] "%0!%1!%2") "1st"))
+    (is (= (get-col ["\"1st\"" "\"2nd\""] "%0 %1") "1st 2nd"))
+    (is (= (get-col ["   " "2nd" "3rd"] "%0!%1!%2") "2nd"))
+    (is (= (get-col ["   " "2nd" "3rd"] "%0 %2!%1") "3rd"))
+    (is (= (get-col ["   " "2nd" "3rd"] "%0!%1%0%2!%2") "2nd   3rd"))
+    (is (= (get-col ["   " "2nd" "3rd"] "%0!%1%0!%2") "2nd"))))
