@@ -1,4 +1,4 @@
-(ns ledger-paymatch.core
+(ns banks2ledger.core
   (:gen-class))
 
 ;; Bump account's token counter for token
@@ -164,7 +164,7 @@
 (defn print-usage-and-die [message]
   (println message)
   (println)
-  (println "Usage: ledger-paymatch [options]")
+  (println "Usage: banks2ledger [options]")
   (println "  available options (syntax to set: -x value)")
   (doseq [{:keys [opt value help]} (vals cl-args-spec)]
     (println " " opt ":" help)

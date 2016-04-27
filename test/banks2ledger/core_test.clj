@@ -1,19 +1,26 @@
-(ns ledger-paymatch.core-test
+(ns banks2ledger.core-test
   (:require [clojure.test :refer :all]
-            [ledger-paymatch.core :refer :all]))
+            [banks2ledger.core :refer :all]))
 
 ;; Compare a and b for "equal enough" (used for testing float results)
 (defn f= [a b]
-  (cond (or (list? a) (vector? a))
-        (do (println "comp: a: " a "b: " b)
-            (and (f= (first a)) (f= (first b))
-                 (f= (rest a)) (f= (rest b))))
+  (cond (or (seq? a) (vector? a))
+        (and (f= (first a) (first b))
+             (or (= '() (rest a))
+                 (= '() (rest b))
+                 (f= (rest a) (rest b))))
         (and (float? a) (float? b))
-        (do (println "float: a: " a "b: " b "eq:" (< (Math/abs (- a b)) 1E-6))
-            (< (Math/abs (- a b)) 1E-6))
+        (< (Math/abs (- a b)) 1E-6)
         :else
-        (do (println "simp: a: " a "b: " b)
-            (= a b))))
+        (= a b)))
+
+;; Make sure our test predicate works before using it...
+(deftest test-f=
+  (testing "f="
+    (is (= true (f= 1.0 1.0000001)))
+    (is (= true (f= [1.0 2.0] [1.0 1.9999997])))
+    (is (= true (f= '(:pi 3.1415926535 :lst [1.0 2.0])
+                    '(:pi 3.141592654  :lst [1.0 1.9999997]))))))
 
 (deftest test-toktab-inc
   (testing "toktab-inc"
@@ -81,10 +88,6 @@
             '([0.5454545454545454 "Acc1"]
               [0.2727272727272727 "Acc4"]
               [0.1818181818181818 "Acc2"])))))
-
-;;(deftest test-
-;;  (testing ""
-;;    (is (=
 
 (deftest test-parse-ledger-entry
   (testing "parse-ledger-entry"
