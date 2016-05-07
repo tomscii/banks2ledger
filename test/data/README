@@ -1,0 +1,4 @@
+Test data for full-fledged end-to-end tests of banks2ledger.
+
+Sensitive data (account numbers, income, etc.) has been carefully
+pruned or altered from original sources.

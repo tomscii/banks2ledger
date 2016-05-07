@@ -114,6 +114,7 @@
 ;; Read and parse a ledger file; return acc-maps
 (defn parse-ledger [filename]
   (->> (clojure.string/split (slurp filename) #"\n\n")
+       (map clojure.string/trim) ;; remove odd newlines
        (filter #(> (count %) 0))
        (map parse-ledger-entry)
        (reduce toktab-update {})))

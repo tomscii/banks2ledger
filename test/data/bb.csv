@@ -1,0 +1,9 @@
+Adatok,01N00560920,2016/03/01,"2016/03/31 23:59:59",,,,,,,,
+"Könyvelt tételek",,,,,,,,,,,
+Értéknap,Tranzakció,"Könyvelés dátuma",Referenciaszám,Összeg,Deviza,"Közlemény 1","Közlemény 2","Közlemény 3",Jogosult,Credit/Debit,Kategória
+2016/03/31,"Forgalmi jutalék",2016/03/31,,-1248,HUF,"01N00/560920/ számláról",,,,D,"Egyéb díj, jutalék"
+2016/03/29,"Internetbank átutalás",2016/03/29,QDR7398472,-8337,HUF,"Teho: 4692987384","Fiz.azon.: 5298738743",,"Dijbeszedo Holding Zrt.",D,Kategorizálatlan
+2016/03/29,"Internetbank átutalás",2016/03/29,QDR7323829,-5154,HUF,"Szlasz: 841213456789","Vevő azonosító : 2234566789","Felhasznalo azonosito: 23456789","ELMU-EMASZ Energiaszolg Zrt.",D,Kategorizálatlan
+2016/03/04,"Internetbank átutalás",2016/03/04,QDR2209398,-15709,HUF,"Lakatos Joe, Jókai utca 129/E/4","folyoszamla kiegyenlites","2016.03.02-i ertesito szerint","Társasház Jókai utca",D,Kategorizálatlan
+"Nem könyvelt tételek",,,,,,,,,,,
+Értéknap,Tranzakció,"Könyvelés dátuma",Referenciaszám,Összeg,Deviza,"Közlemény 1","Közlemény 2","Közlemény 3",Jogosult,Credit/Debit,Kategória

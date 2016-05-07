@@ -7,6 +7,9 @@ article].
 
 ## Running and installation
 
+banks2ledger is written in [Clojure], and [Leiningen] is all you
+should need to get up and running.
+
 After cloning the repository, you might want to run `lein uberjar` to
 obtain a self-contained JAR file that can be copied to a system-wide
 installation location. The program can also be run directly via `lein
@@ -51,6 +54,12 @@ read your main ledger file containing all those transactions that will
 form the basis of the Bayesian inference for newly created
 transactions.
 
+The default value for `-r` (-1) means that in case you don't have a
+reference column in the CSV, you can simply omit this option and no
+reference column will be used. Otherwise, set it to the column number
+for the payment reference, and the data from there will be printed as
+part of the generated ledger entry.
+
 The `-t` option takes something called 'column index specs' that
 warrants further explanation. Since the description string forms
 the basis of the account inference, and different banks provide
@@ -67,17 +76,31 @@ mark, and individual columns in the CSV are referenced by `%n` (n is
 the column number; columns are numbered starting with 0).
 
 Examples to provide as the `-t` option:
- - "%4": get fourth column
- - "%4 %5": get fourth and fifth column separated by a space
- - "%4!%1 %2 %3!%7": fourth column by default, but if that is empty
+ - `"%4"`: get fourth column
+ - `"%4 %5"`: get fourth and fifth column separated by a space
+ - `"%4!%1 %2 %3!%7"`: fourth column by default, but if that is empty
    (contains only whitespace) concatenate the first three columns; if
    that in turn is empty, take the seventh column.
 
 ## Development
 
+Feel free to open a pull request if you find a bug, or have a feature
+you would like to see included.
+
 There are several unit tests you can run via `lein test`. Make sure
 they don't break; also, add coverage for any new functionality you
 might add or regression tests for bugs you might fix.
 
+The script `test.sh` runs the unit tests, and if they are successful,
+proceeds with doing some end-to-end testing with "real" files. The
+input files are under `test/data/` along with the reference output,
+which is used to validate the results. The test script also shows the
+usual invocation (parameterization) of banks2ledger for differently
+structured CSV files. For real production usage, it is recommended to
+roll a `Makefile` or similar solution to process your input files; see
+[this article] for an example.
+
 
 [this article]:               https://tomszilagyi.github.io/payment-matching
+[Clojure]:                    http://clojure.org
+[Leiningen]:                  http://leiningen.org
