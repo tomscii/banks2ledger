@@ -129,6 +129,8 @@
 
 (deftest test-convert-amount
   (testing "convert-amount"
+    (is (= (convert-amount "egy azaz 1 krumpli") "1.00"))
+    (is (= (convert-amount "-8,00 kr") "-8.00"))
     (is (= (convert-amount "-123,45 kr") "-123.45"))
     (is (= (convert-amount "garbage +123.5 kr") "123.50"))
     (is (= (convert-amount "12345") "12,345.00"))

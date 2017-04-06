@@ -224,7 +224,7 @@
 ;; - change decimal comma to dot
 (defn convert-amount [string]
   (->>
-   (-> (re-find #"-?\d[\d ]+[,\.]?\d*" string)
+   (-> (re-find #"-?\d[\d ]*[,\.]?\d*" string)
        (clojure.string/replace #"," ".")
        (.replace " " "")
        (Double.))
