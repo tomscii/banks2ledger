@@ -1,4 +1,14 @@
+; this is a global comment that is not applied to a specific transaction
+; it can start with any of the five characters but is not included in the
+; output from 'print' or 'output'
+
+# according to ledger-cli documentation,
+| the following characters are also
+* valid comment characters, if used at the
+% beginning of the line: # | * %
+
 2016/01/01 Avgift Bankkort
+    ; this is a comment specific to the surrounding transaction
     Expenses:Bank:CardFees                SEK 25.00
     Assets:ICA Account
 

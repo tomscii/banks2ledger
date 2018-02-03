@@ -14,14 +14,6 @@
                                   tok toks]
                               [acc tok])))
 
-;; Clip string to the part before the given endmark
-;; endmark is first arg to allow meaningful use of `partial'
-(defn clip-string [endmark string]
-  (let [end-idx (.indexOf string endmark)]
-    (if (= end-idx -1)
-      string
-      (.substring string 0 end-idx))))
-
 ;; Create tokens from string
 ;; One string may become one or more tokens, returned as a seq
 ;; - Convert to uppercase
@@ -100,15 +92,33 @@
 
 ;; Science up to this point. From here, only machinery.
 
+;; Clip string to the part before the given endmark
+;; endmark is first arg to allow meaningful use of `partial'
+(defn clip-string [endmark string]
+  (let [end-idx (.indexOf string endmark)]
+    (if (= end-idx -1)
+      string
+      (.substring string 0 end-idx))))
+
+;; Predicate for full comment lines in the ledger file
+(defn is-comment-line [line]
+  (some #(.startsWith line %) '(";" "#" "|" "*" "%")))
+
+;; Split ledger entry string to a sequence of separate lines
+(defn split-ledger-entry [entry]
+  (->> (clojure.string/split entry #"\n")
+       (filter (complement is-comment-line))
+       (map (partial clip-string ";"))
+       (map clojure.string/trim)
+       (filter #(> (count %) 0))))
+
 ;; Parse a ledger entry from string to acc-map
-(defn parse-ledger-entry [entry]
-  (let [[first-line0 & rest-lines] (clojure.string/split entry #"\n")
-        first-line (clip-string "|" first-line0)
+(defn parse-ledger-entry [entry-seq]
+  (let [[first-line0 & rest-lines] entry-seq
+        first-line (clip-string "|" first-line0) ; N.B: this is non-standard (not part of ledger-cli)
         [date descr] (clojure.string/split first-line #" " 2)
         toks (tokenize descr)
-        accs (->> rest-lines
-                  (map clojure.string/trim)
-                  (map (partial clip-string "  ")))]
+        accs (map (partial clip-string "  ") rest-lines)]
     {:date date :toks toks :accs accs}))
 
 ;; Read and parse a ledger file; return acc-maps
@@ -116,6 +126,8 @@
   (->> (clojure.string/split (slurp filename) #"\n\n")
        (map clojure.string/trim) ;; remove odd newlines
        (filter #(> (count %) 0))
+       (map split-ledger-entry)
+       (filter #(> (count %) 1))
        (map parse-ledger-entry)
        (reduce toktab-update {})))
 

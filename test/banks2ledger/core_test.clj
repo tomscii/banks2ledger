@@ -17,6 +17,7 @@
 ;; Make sure our test predicate works before using it...
 (deftest test-f=
   (testing "f="
+    (is (= false (f= 1.0 1.0123456)))
     (is (= true (f= 1.0 1.0000001)))
     (is (= true (f= [1.0 2.0] [1.0 1.9999997])))
     (is (= true (f= '(:pi 3.1415926535 :lst [1.0 2.0])
@@ -89,22 +90,78 @@
               [0.2727272727272727 "Acc4"]
               [0.1818181818181818 "Acc2"])))))
 
-(deftest test-parse-ledger-entry
-  (testing "parse-ledger-entry"
-    (is (= (parse-ledger-entry
+(deftest test-split-ledger-entry
+  (testing "split-ledger-entry"
+    (is (= (split-ledger-entry
             (str "2016/03/22 ICA NARA KAR/16-03-21\n"
                  "    Expenses:Groceries:ICA                SEK 314.32\n"
                  "    Assets:Bank account\n\n"))
+           '("2016/03/22 ICA NARA KAR/16-03-21"
+             "Expenses:Groceries:ICA                SEK 314.32"
+             "Assets:Bank account")))
+    (is (= (split-ledger-entry
+            (str "2016/02/16 Lindra Second Hand, Kärrtorp | Baby stuff\n"
+                 "    Expenses:Clothing:Baby                 SEK 60.00\n"
+                 "    Assets:Bank account\n"))
+           '("2016/02/16 Lindra Second Hand, Kärrtorp | Baby stuff"
+             "Expenses:Clothing:Baby                 SEK 60.00"
+             "Assets:Bank account")))
+    (is (= (split-ledger-entry
+            (str "; this is a global comment that is not applied to a specific transaction\n"
+                 "; it can start with any of the five characters ; # | * %\n"
+                 "    ; it is also valid in any column, not just at the start of the line\n"
+                 "# according to ledger-cli documentation,\n"
+                 "| the following characters are also\n"
+                 "* valid comment characters, if used at the\n"
+                 "% beginning of the line: # | * %\n"
+                 "2018/01/22 (1234567890) CLAS OHLSON /18-01-19 | Verktyg & material\n"
+                 "    ; NYCKELBRICKA 6-PA              19.90\n"
+                 "    ; PINCETTSATS 4-PAC              59.90\n"
+                 "    ; SKYDDGLASÖGON KL              179.00\n"
+                 "    ; BLOCKNYCKEL 24MM               69.90\n"
+                 "    ; ELTEJP 20MM SVART              29.90\n"
+                 "    Expenses:Supplies                     SEK 358.60\n"
+                 "    Assets:Bank account\n"))
+           '("2018/01/22 (1234567890) CLAS OHLSON /18-01-19 | Verktyg & material"
+             "Expenses:Supplies                     SEK 358.60"
+             "Assets:Bank account")))
+    (is (= (split-ledger-entry
+            (str "; this is a global comment that is not applied to a specific transaction\n"
+                 "; it can start with any of the five characters ; # | * %\n"
+                 "    ; it is also valid in any column, not just at the start of the line\n"
+                 "# according to ledger-cli documentation,\n"
+                 "| the following characters are also\n"
+                 "* valid comment characters, if used at the\n"
+                 "% beginning of the line: # | * %\n"
+                 "\t; There\n"
+                 "  \t; Are          \n"
+                 "    ; Only Comments         \n"
+                 "    ; And Whitespace in this block!\n"))
+           '()))))
+
+(deftest test-parse-ledger-entry
+  (testing "parse-ledger-entry"
+    (is (= (parse-ledger-entry
+            '("2016/03/22 ICA NARA KAR/16-03-21"
+              "Expenses:Groceries:ICA                SEK 314.32"
+              "Assets:Bank account"))
            {:date "2016/03/22",
             :toks '("ICA" "NARA" "KAR" "YY-MM-DD"),
             :accs '("Expenses:Groceries:ICA" "Assets:Bank account")}))
     (is (= (parse-ledger-entry
-            (str "2016/02/16 Lindra Second Hand, Kärrtorp | Baby stuff\n"
-                 "    Expenses:Clothing:Baby                 SEK 60.00\n"
-                 "    Assets:Bank account\n"))
+            '("2016/02/16 Lindra Second Hand, Kärrtorp | Baby stuff"
+              "Expenses:Clothing:Baby                 SEK 60.00"
+              "Assets:Bank account"))
            {:date "2016/02/16",
             :toks '("LINDRA" "SECOND" "HAND" "KÄRRTORP"),
-            :accs '("Expenses:Clothing:Baby" "Assets:Bank account")}))))
+            :accs '("Expenses:Clothing:Baby" "Assets:Bank account")}))
+    (is (= (parse-ledger-entry
+            '("2018/01/22 (1234567890) CLAS OHLSON /18-01-19 | Verktyg & material"
+              "Expenses:Supplies                     SEK 358.60"
+              "Assets:Bank account"))
+           {:date "2018/01/22",
+            :toks '("(1234567890)" "CLAS" "OHLSON" "YY-MM-DD"),
+            :accs '("Expenses:Supplies" "Assets:Bank account")}))))
 
 (deftest test-get-arg
   (testing "get-arg"
