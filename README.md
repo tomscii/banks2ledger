@@ -82,6 +82,19 @@ Examples to provide as the `-t` option:
    (contains only whitespace) concatenate the first three columns; if
    that in turn is empty, take the seventh column.
 
+## Status
+
+`banks2ledger` development is governed, first and foremost, by the
+author's own needs. Naturally, pull requests to add features or fix
+problems by other developers are gladly considered.
+
+Because of the above, the program is not aiming to be complete. In
+particular, it does not implement every documented feature of
+`ledger-cli` file syntax. If you run into problems (i.e. because
+`banks2ledger` does not parse your ledger file that is flawlessly
+parsed by ledger itself) please open an issue with a specific minimal
+example demonstrating the problem.
+
 ## Development
 
 Feel free to open a pull request if you find a bug, or have a feature
