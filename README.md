@@ -1,5 +1,7 @@
 # banks2ledger
 
+[![Build Status](https://travis-ci.org/tomszilagyi/banks2ledger.svg?branch=master)](https://travis-ci.org/tomszilagyi/banks2ledger)
+
 A tool to convert bank account CSV files to ledger. Guesses account
 name via simple Bayesian inference based on your existing ledger file.
 Read about the motivation, the algorithm and the workflow in [this

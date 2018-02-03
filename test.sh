@@ -18,6 +18,7 @@ lein run -l $LEDGER -f test/data/bb.csv -sa 3 -sz 2 -D 'yyyy/MM/dd' \
 diff -u test/data/bb.out test/data/bb.ref-out >/dev/null
 if [ $? -ne 0 ]; then
     echo "FAIL, inspect bb.out!"
+    exit $?
 else
     rm test/data/bb.out
     echo "OK"
@@ -29,6 +30,7 @@ lein run -l $LEDGER -f test/data/ica.csv -F ';' -sa 1 -m 4 -t '%1' \
 diff -u test/data/ica.out test/data/ica.ref-out >/dev/null
 if [ $? -ne 0 ]; then
     echo "FAIL, inspect ica.out!"
+    exit $?
 else
     rm test/data/ica.out
     echo "OK"
@@ -40,6 +42,7 @@ lein run -l $LEDGER -f test/data/seb.csv -sa 5 -r 2 -m 4 -t '%3' \
 diff -u test/data/seb.out test/data/seb.ref-out >/dev/null
 if [ $? -ne 0 ]; then
     echo "FAIL, inspect seb.out!"
+    exit $?
 else
     rm test/data/seb.out
     echo "OK"
