@@ -217,13 +217,6 @@
     (is (= (split-by-indices "abc:def:gh:ij" '(3 7 10))
            '("abc" "def" "gh" "ij")))))
 
-(deftest test-split-csv-line
-  (testing "split-csv-line"
-    (is (= (split-csv-line "abc,def,ghi" ",")
-           ["abc" "def" "ghi"]))
-    (is (= (split-csv-line "abc,de,\"f,g,x\",hi,\"al,ma\"" ",")
-           ["abc" "de" "\"f,g,x\"" "hi" "\"al,ma\""]))))
-
 (deftest test-format-colspec
   (testing "format-colspec"
     (is (= (format-colspec ["1st" "2nd" "3rd"] "%0") "1st"))
