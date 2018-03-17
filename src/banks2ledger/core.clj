@@ -1,4 +1,6 @@
 (ns banks2ledger.core
+  (:require clojure.data.csv
+            clojure.java.io)
   (:gen-class))
 
 ;; Bump account's token counter for token
@@ -271,17 +273,6 @@
            (subs str (inc s) e))
          (partition 2 1 op-ixs))))
 
-;; Return a vector of columns split from csv line.
-;; NB: delimiters in quoted cells will not split the string
-(defn split-csv-line [str delim]
-  (let [delim-ixs (all-indices str delim)
-        quote-ixs (all-indices str "\"")
-        split-ixs (reduce
-                   (fn [acc [start end]]
-                     (filter #(not (and (< start %) (< % end))) acc))
-                   delim-ixs
-                   (partition 2 quote-ixs))]
-    (into [] (split-by-indices str split-ixs))))
 
 ;; Render a colspec to an actual string based on cols;
 ;; return whitespace-trimmed version.
@@ -312,9 +303,8 @@
     (get-col-1 cols spec-list)))
 
 ;; Parse a line of CSV into a map with :date :ref :amount :descr
-(defn parse-csv-entry [params string]
-  (let [cols (split-csv-line string (get-arg params :csv-field-separator))
-        ref-col (get-arg params :ref-col)]
+(defn parse-csv-entry [params cols]
+  (let [ref-col (get-arg params :ref-col)]
     {:date (convert-date params (nth cols (get-arg params :date-col)))
      :ref (if (< ref-col 0) nil (unquote-string (nth cols ref-col)))
      :amount (convert-amount (nth cols (get-arg params :amount-col)))
@@ -322,17 +312,17 @@
 
 ;; Drop the configured number of header and trailer lines
 (defn drop-lines [lines params]
-  (subvec lines
-          (get-arg params :csv-skip-header-lines)
-          (- (count lines) (get-arg params :csv-skip-trailer-lines))))
+  (->> lines
+       (drop (get-arg params :csv-skip-header-lines))
+       (drop-last (get-arg params :csv-skip-trailer-lines))))
 
 ;; Parse input CSV into a list of maps
-(defn parse-csv [params]
-  (->> (-> (slurp (get-arg params :csv-file))
-           (clojure.string/split #"\n")
-           (drop-lines params))
-       (map clojure.string/trim-newline)
-       (map (partial parse-csv-entry params))))
+(defn parse-csv [reader params]
+  (->>
+   (-> (clojure.data.csv/read-csv reader
+        :separator (.charAt (get-arg params :csv-field-separator) 0))
+       (drop-lines params))
+   (mapv (partial parse-csv-entry params))))
 
 ;; format and print a ledger entry to *out*
 (defn print-ledger-entry [params acc-maps
@@ -353,8 +343,8 @@
 ;; Convert CSV of bank account transactions to corresponding ledger entries
 (defn -main [& args]
   (let [params (parse-args cl-args-spec args)
-        acc-maps (parse-ledger (get-arg params :ledger-file))
-        csv-maps (parse-csv params)]
-    (doseq [cm csv-maps]
-      (print-ledger-entry params acc-maps cm))
-    (flush)))
+        acc-maps (parse-ledger (get-arg params :ledger-file))]
+    (with-open [reader (clojure.java.io/reader (get-arg params :csv-file))]
+      (let [lines (parse-csv reader params)]
+        (mapv (partial print-ledger-entry params acc-maps) lines))
+      (flush))))
