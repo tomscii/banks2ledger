@@ -1,6 +1,6 @@
 (ns banks2ledger.core
-  (:require [clojure.data.csv :as csvlib]
-            [clojure.java.io :as io])
+  (:require clojure.data.csv
+            clojure.java.io)
   (:gen-class))
 
 ;; Bump account's token counter for token
@@ -310,22 +310,19 @@
      :amount (convert-amount (nth cols (get-arg params :amount-col)))
      :descr (unquote-string (get-col cols (get-arg params :descr-col)))}))
 
-
 ;; Drop the configured number of header and trailer lines
 (defn drop-lines [lines params]
   (->> lines
        (drop (get-arg params :csv-skip-header-lines))
-       (drop-last (get-arg params :csv-skip-trailer-lines))
-       )
-  )
+       (drop-last (get-arg params :csv-skip-trailer-lines))))
+
 ;; Parse input CSV into a list of maps
 (defn parse-csv [reader params]
   (->>
-   (-> (csvlib/read-csv reader :separator (.charAt (get-arg params :csv-field-separator) 0))
+   (-> (clojure.data.csv/read-csv reader
+        :separator (.charAt (get-arg params :csv-field-separator) 0))
        (drop-lines params))
-   (mapv (partial parse-csv-entry params))
-   ;;(h-print-ledger-entry)
-   ))
+   (mapv (partial parse-csv-entry params))))
 
 ;; format and print a ledger entry to *out*
 (defn print-ledger-entry [params acc-maps
@@ -349,6 +346,5 @@
         acc-maps (parse-ledger (get-arg params :ledger-file))]
     (with-open [reader (clojure.java.io/reader (get-arg params :csv-file))]
       (let [lines (parse-csv reader params)]
-        (mapv (partial print-ledger-entry params acc-maps) lines)
-        )
+        (mapv (partial print-ledger-entry params acc-maps) lines))
       (flush))))
