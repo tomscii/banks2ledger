@@ -178,7 +178,12 @@
 
    :descr-col
    {:opt "-t" :value "%3"
-    :help "Text (descriptor) column index specs (zero-based)"}})
+    :help "Text (descriptor) column index specs (zero-based)"}
+
+   :amount-decimal-format
+   {:opt "-af" :value "###.#"
+    :help "A string that sets the decimal format used the the amount. For a detailed reference on it, see https://docs.oracle.com/javase/10/docs/api/java/text/DecimalFormat.html"}
+   })
 
 (defn print-usage-and-die [message]
   (println message)
@@ -234,15 +239,18 @@
            datestr)))
 
 ;; Convert amount string - note the return value is still a string!
-;; - strip anything that does not belong to the number
-;; - change decimal comma to dot
-(defn convert-amount [string]
-  (->>
-   (-> (re-find #"-?\d[\d ]*[,\.]?\d*" string)
-       (clojure.string/replace #"," ".")
-       (.replace " " "")
-       (Double.))
-   (format "%,.2f")))
+;; This uses Java's
+;; DecimalFormat(https://docs.oracle.com/javase/10/docs/api/java/text/DecimalFormat.html)
+;; to parse the value. Note that no garbage can come in this value,
+;; but this format allows immense variability in the format of values
+;; used.
+(defn convert-amount [args-spec string]
+  (let [df (java.text.DecimalFormat.
+            (get-arg args-spec :amount-decimal-format))]
+    (->> string
+         (.parse df)
+         double
+         (format "%,.2f"))))
 
 ;; Remove quotes from start & end of the string, if both present
 (defn unquote-string [str]
@@ -307,7 +315,7 @@
   (let [ref-col (get-arg params :ref-col)]
     {:date (convert-date params (nth cols (get-arg params :date-col)))
      :ref (if (< ref-col 0) nil (unquote-string (nth cols ref-col)))
-     :amount (convert-amount (nth cols (get-arg params :amount-col)))
+     :amount (convert-amount params (nth cols (get-arg params :amount-col)))
      :descr (unquote-string (get-col cols (get-arg params :descr-col)))}))
 
 ;; Drop the configured number of header and trailer lines

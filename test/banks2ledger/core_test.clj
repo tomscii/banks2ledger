@@ -186,12 +186,18 @@
 
 (deftest test-convert-amount
   (testing "convert-amount"
-    (is (= (convert-amount "egy azaz 1 krumpli") "1.00"))
-    (is (= (convert-amount "-8,00 kr") "-8.00"))
-    (is (= (convert-amount "-123,45 kr") "-123.45"))
-    (is (= (convert-amount "garbage +123.5 kr") "123.50"))
-    (is (= (convert-amount "12345") "12,345.00"))
-    (is (= (convert-amount "-1234567") "-1,234,567.00"))))
+    (is (thrown-with-msg?
+         java.text.ParseException
+         #"Unparseable number: \"egy azaz 1 krumpli\""
+         (convert-amount {:amount-decimal-format {:value "###.#"}} "egy azaz 1 krumpli")))
+    (is (= (convert-amount {:amount-decimal-format {:value "###.#"}} "-8,00")
+           "-8.00"))
+    (is (= (convert-amount {:amount-decimal-format {:value "###,###.#"}} "-10,123.45")
+           "-10,123.45"))
+    (is (= (convert-amount {:amount-decimal-format {:value "###.#"}} "12345")
+           "12,345.00"))
+    (is (= (convert-amount {:amount-decimal-format {:value "###.#"}} "-1234567")
+           "-1,234,567.00"))))
 
 (deftest test-unquote-string
   (testing "unquote-string"
