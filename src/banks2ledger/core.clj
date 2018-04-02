@@ -143,6 +143,10 @@
    {:opt "-f" :value "transactions.csv"
     :help "Input transactions in CSV format"}
 
+   :csv-file-encoding
+   {:opt "-e" :value "ISO-8859-1"
+    :help "The encoding of the CSV file."}
+
    :account
    {:opt "-a" :value "Assets:Checking"
     :help "Originating account of transactions"}
@@ -344,7 +348,8 @@
 (defn -main [& args]
   (let [params (parse-args cl-args-spec args)
         acc-maps (parse-ledger (get-arg params :ledger-file))]
-    (with-open [reader (clojure.java.io/reader (get-arg params :csv-file))]
+    (with-open [reader (clojure.java.io/reader (get-arg params :csv-file)
+                                               :encoding (get-arg params :csv-file-encoding))]
       (let [lines (parse-csv reader params)]
         (mapv (partial print-ledger-entry params acc-maps) lines))
       (flush))))
