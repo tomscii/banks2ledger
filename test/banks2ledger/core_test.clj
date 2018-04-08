@@ -186,18 +186,38 @@
 
 (deftest test-convert-amount
   (testing "convert-amount"
-    (is (thrown-with-msg?
-         java.text.ParseException
-         #"Unparseable number: \"egy azaz 1 krumpli\""
-         (convert-amount {:amount-decimal-format {:value "###.#"}} "egy azaz 1 krumpli")))
-    (is (= (convert-amount {:amount-decimal-format {:value "###.#"}} "-8,00")
-           "-8.00"))
-    (is (= (convert-amount {:amount-decimal-format {:value "###,###.#"}} "-10,123.45")
-           "-10,123.45"))
-    (is (= (convert-amount {:amount-decimal-format {:value "###.#"}} "12345")
-           "12,345.00"))
-    (is (= (convert-amount {:amount-decimal-format {:value "###.#"}} "-1234567")
-           "-1,234,567.00"))))
+    (is (= (convert-amount {:amount-format {:value "egy azaz # krumpli"}
+                            :amount-decimal-separator {:value \.}
+                            :amount-grouping-separator {:value \,}}
+                           "egy azaz 1 krumpli")
+           "1.00")
+        "A number with a prefix and a suffix should be parsed correctly.")
+    (is (= (convert-amount {:amount-format {:value "# kr;-# kr"}
+                            :amount-decimal-separator {:value \.}
+                            :amount-grouping-separator {:value \,}} "-123.45 kr")
+           "-123.45")
+        "A negative number with a currency suffix should be parsed correctly.")
+    (is (= (convert-amount {:amount-format {:value "###,###.## kr"}
+                            :amount-decimal-separator {:value \,}
+                            :amount-grouping-separator {:value \.}} "-110.003,45 kr")
+           "-110,003.45")
+        "A negative number with a currency suffix and custom separators should be parsed correctly.")
+    (is (= (convert-amount {:amount-format {:value "#"}
+                            :amount-decimal-separator {:value \,}
+                            :amount-grouping-separator {:value \.}} "8,01")
+           "8.01")
+        "A number with a custom decimal separator should be parsed correctly.")
+    (is (= (convert-amount  {:amount-format {:value "usd ###,###.#"}
+                             :amount-decimal-separator {:value \.}
+                             :amount-grouping-separator {:value \,}} "usd 10,123.45")
+           "10,123.45")
+        "A number with a currency prefix and standard separators should be parsed correctly.")
+    (is (= (convert-amount {:amount-format {:value "####,####.#"}
+                            :amount-decimal-separator {:value \.}
+                            :amount-grouping-separator {:value \,}}
+                           "-1234,5671.28")
+           "-12,345,671.28")
+        "A number with custom spacing for groups should be parsed correctly.")))
 
 (deftest test-unquote-string
   (testing "unquote-string"
