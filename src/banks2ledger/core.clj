@@ -189,14 +189,14 @@
     https://docs.oracle.com/javase/10/docs/api/java/text/DecimalFormat.html"}
 
    :amount-decimal-separator
-   {:opt "-ds" :value \. :conv-fun #(first %)
+   {:opt "-ds" :value "." :conv-fun #(first %)
     :help "Sets the character used for decimal sign. This should be
     used in combination with the `af` option for increased control of
     the amount format. See the test file for examples on the usage of
     this option."}
 
    :amount-grouping-separator
-   {:opt "-gs" :value \, :conv-fun #(first %)
+   {:opt "-gs" :value "," :conv-fun #(first %)
     :help "Sets the character used for thousands separator. This
     should be used in combination with the `af` option for increased
     control of the amount format. See the test file for examples on

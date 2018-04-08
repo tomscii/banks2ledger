@@ -192,7 +192,7 @@
                            "egy azaz 1 krumpli")
            "1.00")
         "A number with a prefix and a suffix should be parsed correctly.")
-    (is (= (convert-amount {:amount-format {:value "# kr;-# kr"}
+    (is (= (convert-amount {:amount-format {:value "# kr"}
                             :amount-decimal-separator {:value \.}
                             :amount-grouping-separator {:value \,}} "-123.45 kr")
            "-123.45")
