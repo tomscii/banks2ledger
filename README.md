@@ -45,18 +45,20 @@ run`.
              default: 2
         -t : Text (descriptor) column index specs (zero-based)
              default: %3
-        -af : A string that sets the decimal format used for the
+       -af : A string that sets the decimal format used for the
           amount. This should be used in combination with the `ds` and `gs`
-          options to have control over the format of the amount.  For a
-          detailed reference on this string, see
+          options to have control over the format of the amount. Note:
+          Fixing a prefix and a sufix in this pattern is not needed, since
+          they are dealt with using regular expressions. For a detailed
+          reference on this string, see
           https://docs.oracle.com/javase/10/docs/api/java/text/DecimalFormat.html
              default: #
-        -gs : Sets the character used for thousands separator. This
+       -gs : Sets the character used for thousands separator. This
           should be used in combination with the `af` option for increased
           control of the amount format. See the test file for examples on
           the usage of this option.
              default: ,
-        -ds : Sets the character used for decimal sign. This should be
+       -ds : Sets the character used for decimal sign. This should be
           used in combination with the `af` option for increased control of
           the amount format. See the test file for examples on the usage of
           this option.
