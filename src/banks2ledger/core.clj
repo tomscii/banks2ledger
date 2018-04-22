@@ -184,8 +184,10 @@
    {:opt "-af" :value "#"
     :help "A string that sets the decimal format used for the
     amount. This should be used in combination with the `ds` and `gs`
-    options to have control over the format of the amount.  For a
-    detailed reference on this string, see
+    options to have control over the format of the amount. Note:
+    Fixing a prefix and a sufix in this pattern is not needed, since
+    they are dealt with using regular expressions. For a detailed
+    reference on this string, see
     https://docs.oracle.com/javase/10/docs/api/java/text/DecimalFormat.html"}
 
    :amount-decimal-separator
@@ -255,6 +257,13 @@
    (.parse (java.text.SimpleDateFormat. (get-arg args-spec :date-format))
            datestr)))
 
+;; Removes everything up to a digit (with an optional minus char) in a
+;; string. The purpose of this is to enable the `convert-amount`
+;; function to deal with unexpected prefixes in amount values.
+(defn remove-up-to-a-digit [s]
+  (let [up-to-a-digit-re #".+?(?=-?\d)"]
+    (clojure.string/replace-first (str " " s) up-to-a-digit-re "")))
+
 ;; Convert amount string - note the return value is still a string!
 ;; This uses Java's
 ;; DecimalFormat(https://docs.oracle.com/javase/10/docs/api/java/text/DecimalFormat.html)
@@ -267,6 +276,7 @@
               (.setGroupingSeparator (get-arg args-spec :amount-grouping-separator)))
         df (java.text.DecimalFormat. (get-arg args-spec :amount-format) dfs)]
     (->> string
+         remove-up-to-a-digit
          (.parse df)
          double
          (format "%,.2f"))))

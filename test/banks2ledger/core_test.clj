@@ -186,18 +186,29 @@
 
 (deftest test-convert-amount
   (testing "convert-amount"
-    (is (= (convert-amount {:amount-format {:value "egy azaz # krumpli"}
+    (is (= (convert-amount {:amount-format {:value "#"}
+                            :amount-decimal-separator {:value \.}
+                            :amount-grouping-separator {:value \,}}
+                           "Lots of chars here, and the number -> 100200.12 <- the number")
+           "100,200.12")
+        "A number surrounded by text should be parsed correctly.")
+    (is (= (convert-amount {:amount-format {:value "#"}
                             :amount-decimal-separator {:value \.}
                             :amount-grouping-separator {:value \,}}
                            "egy azaz 1 krumpli")
            "1.00")
         "A number with a prefix and a suffix should be parsed correctly.")
-    (is (= (convert-amount {:amount-format {:value "# kr"}
+    (is (= (convert-amount {:amount-format {:value "#"}
+                            :amount-decimal-separator {:value \.}
+                            :amount-grouping-separator {:value \,}} "--12")
+           "-12.00")
+        "A negative number with 2 minus signs should be parsed correctly.")
+    (is (= (convert-amount {:amount-format {:value "#"}
                             :amount-decimal-separator {:value \.}
                             :amount-grouping-separator {:value \,}} "-123.45 kr")
            "-123.45")
         "A negative number with a currency suffix should be parsed correctly.")
-    (is (= (convert-amount {:amount-format {:value "###,###.## kr"}
+    (is (= (convert-amount {:amount-format {:value "###,###.##"}
                             :amount-decimal-separator {:value \,}
                             :amount-grouping-separator {:value \.}} "-110.003,45 kr")
            "-110,003.45")
@@ -207,7 +218,7 @@
                             :amount-grouping-separator {:value \.}} "8,01")
            "8.01")
         "A number with a custom decimal separator should be parsed correctly.")
-    (is (= (convert-amount  {:amount-format {:value "usd ###,###.#"}
+    (is (= (convert-amount  {:amount-format {:value "###,###.#"}
                              :amount-decimal-separator {:value \.}
                              :amount-grouping-separator {:value \,}} "usd 10,123.45")
            "10,123.45")
