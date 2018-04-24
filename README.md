@@ -48,7 +48,7 @@ run`.
        -af : A string that sets the decimal format used for the
           amount. This should be used in combination with the `ds` and `gs`
           options to have control over the format of the amount. Note:
-          Fixing a prefix and a sufix in this pattern is not needed, since
+          Fixing a prefix and a suffix in this pattern is not needed, since
           they are dealt with using regular expressions. For a detailed
           reference on this string, see
           https://docs.oracle.com/javase/10/docs/api/java/text/DecimalFormat.html

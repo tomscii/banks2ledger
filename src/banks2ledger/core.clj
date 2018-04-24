@@ -185,7 +185,7 @@
     :help "A string that sets the decimal format used for the
     amount. This should be used in combination with the `ds` and `gs`
     options to have control over the format of the amount. Note:
-    Fixing a prefix and a sufix in this pattern is not needed, since
+    Fixing a prefix and a suffix in this pattern is not needed, since
     they are dealt with using regular expressions. For a detailed
     reference on this string, see
     https://docs.oracle.com/javase/10/docs/api/java/text/DecimalFormat.html"}
@@ -260,7 +260,7 @@
 ;; Removes everything up to a digit (with an optional minus char) in a
 ;; string. The purpose of this is to enable the `convert-amount`
 ;; function to deal with unexpected prefixes in amount values.
-(defn remove-up-to-a-digit [s]
+(defn remove-leading-garbage [s]
   (let [up-to-a-digit-re #".+?(?=-?\d)"]
     (clojure.string/replace-first (str " " s) up-to-a-digit-re "")))
 
@@ -276,7 +276,7 @@
               (.setGroupingSeparator (get-arg args-spec :amount-grouping-separator)))
         df (java.text.DecimalFormat. (get-arg args-spec :amount-format) dfs)]
     (->> string
-         remove-up-to-a-digit
+         remove-leading-garbage
          (.parse df)
          double
          (format "%,.2f"))))
