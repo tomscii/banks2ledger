@@ -186,6 +186,12 @@
 
 (deftest test-convert-amount
   (testing "convert-amount"
+    (is (= (convert-amount {:amount-format {:value "###,###.#"}
+                          :amount-decimal-separator {:value \,}
+                          :amount-grouping-separator {:value \space}}
+                           "1 125 000,00")
+           "1,125,000.00")
+        "A number with space as grouping separator should be parsed correctly.")
     (is (= (convert-amount {:amount-format {:value "#"}
                             :amount-decimal-separator {:value \.}
                             :amount-grouping-separator {:value \,}}
