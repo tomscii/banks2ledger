@@ -180,29 +180,15 @@
    {:opt "-t" :value "%3"
     :help "Text (descriptor) column index specs (zero-based)"}
 
-   :amount-format
-   {:opt "-af" :value "#"
-    :help "A string that sets the decimal format used for the
-    amount. This should be used in combination with the `ds` and `gs`
-    options to have control over the format of the amount. Note:
-    Fixing a prefix and a suffix in this pattern is not needed, since
-    they are dealt with using regular expressions. For a detailed
-    reference on this string, see
-    https://docs.oracle.com/javase/10/docs/api/java/text/DecimalFormat.html"}
-
    :amount-decimal-separator
    {:opt "-ds" :value "." :conv-fun #(first %)
-    :help "Sets the character used for decimal sign. This should be
-    used in combination with the `af` option for increased control of
-    the amount format. See the test file for examples on the usage of
-    this option."}
+    :help "Sets the character used for decimal sign. See the test file
+    for examples on the usage of this option."}
 
    :amount-grouping-separator
    {:opt "-gs" :value "," :conv-fun #(first %)
-    :help "Sets the character used for thousands separator. This
-    should be used in combination with the `af` option for increased
-    control of the amount format. See the test file for examples on
-    the usage of this option."}})
+    :help "Sets the character used for thousands separator. See the
+    test file for examples on the usage of this option."}})
 
 (defn print-usage-and-die [message]
   (println message)
@@ -265,16 +251,14 @@
     (clojure.string/replace-first (str " " s) up-to-a-digit-re "")))
 
 ;; Convert amount string - note the return value is still a string!
-;; This uses Java's
-;; DecimalFormat(https://docs.oracle.com/javase/10/docs/api/java/text/DecimalFormat.html)
-;; to parse the value. Note that no garbage can come in this value,
-;; but this format allows immense variability in the format of values
-;; used.
 (defn convert-amount [args-spec string]
-  (let [dfs (doto (java.text.DecimalFormatSymbols.)
+  (let [pattern "#,#.#" ;; see
+                        ;; https://docs.oracle.com/javase/10/docs/api/java/text/DecimalFormat.html
+                        ;; to understand this pattern.
+        dfs (doto (java.text.DecimalFormatSymbols.)
               (.setDecimalSeparator  (get-arg args-spec :amount-decimal-separator))
               (.setGroupingSeparator (get-arg args-spec :amount-grouping-separator)))
-        df (java.text.DecimalFormat. (get-arg args-spec :amount-format) dfs)]
+        df (java.text.DecimalFormat. pattern dfs)]
     (->> string
          remove-leading-garbage
          (.parse df)
