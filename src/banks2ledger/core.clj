@@ -135,7 +135,8 @@
 
 ;; command line args spec
 (def cl-args-spec
-  {:ledger-file
+  (array-map
+   :ledger-file
    {:opt "-l" :value "ledger.dat"
     :help "Ledger file to get accounts and probabilities"}
 
@@ -190,7 +191,7 @@
 
    :amount-grouping-separator
    {:opt "-gs" :value "," :conv-fun #(first %)
-    :help "Decimal group (thousands) separator character"}})
+    :help "Decimal group (thousands) separator character"}))
 
 (defn print-usage-and-die [message]
   (println message)
@@ -198,7 +199,7 @@
   (println "Usage: banks2ledger [options]")
   (println "  available options (syntax to set: -x value)")
   (doseq [{:keys [opt value help]} (vals cl-args-spec)]
-    (println " " opt ":" help)
+    (println (format "%4s" opt) ":" help)
     (println "       default:" value))
   (System/exit 0))
 
