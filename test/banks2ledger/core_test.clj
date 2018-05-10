@@ -190,47 +190,67 @@
                             :amount-grouping-separator {:value \space}}
                            "12500,19")
            "12,500.19")
-        "A number without grouping separators should be parsed correctly.")
+        "A number without grouping separators")
     (is (= (convert-amount {:amount-decimal-separator {:value \,}
                             :amount-grouping-separator {:value \space}}
                            "1 125 000,00")
            "1,125,000.00")
-        "A number with space as grouping separator should be parsed correctly.")
+        "A number with space as grouping separator")
     (is (= (convert-amount {:amount-decimal-separator {:value \.}
                             :amount-grouping-separator {:value \,}}
                            "Lots of chars here, and the number -> 100200.12 <- the number")
            "100,200.12")
-        "A number surrounded by text should be parsed correctly.")
+        "A number surrounded by text")
     (is (= (convert-amount {:amount-decimal-separator {:value \.}
                             :amount-grouping-separator {:value \,}}
                            "egy azaz 1 krumpli")
            "1.00")
-        "A number with a prefix and a suffix should be parsed correctly.")
+        "A number with a prefix and a suffix")
     (is (= (convert-amount {:amount-decimal-separator {:value \.}
                             :amount-grouping-separator {:value \,}} "--12")
            "-12.00")
-        "A negative number with 2 minus signs should be parsed correctly.")
+        "A negative number with 2 minus signs")
+    (is (= (convert-amount {:amount-decimal-separator {:value \.}
+                            :amount-grouping-separator {:value \,}} "+12.34")
+           "12.34")
+        "A positive number with an explicit plus sign")
     (is (= (convert-amount {:amount-decimal-separator {:value \.}
                             :amount-grouping-separator {:value \,}} "-123.45 kr")
            "-123.45")
-        "A negative number with a currency suffix should be parsed correctly.")
+        "A negative number with a currency suffix")
     (is (= (convert-amount {:amount-decimal-separator {:value \,}
                             :amount-grouping-separator {:value \.}} "-110.003,45 kr")
            "-110,003.45")
-        "A negative number with a currency suffix and custom separators should be parsed correctly.")
+        "A negative number with a currency suffix and custom separators")
     (is (= (convert-amount {:amount-decimal-separator {:value \,}
                             :amount-grouping-separator {:value \.}} "8,01")
            "8.01")
-        "A number with a custom decimal separator should be parsed correctly.")
+        "A number with a custom decimal separator")
+    (is (= (convert-amount {:amount-decimal-separator {:value \,}
+                            :amount-grouping-separator {:value \.}} "876.543,21")
+           "876,543.21")
+        "A large number with a custom decimal separator")
+    (is (= (convert-amount {:amount-decimal-separator {:value \,}
+                            :amount-grouping-separator {:value \space}} "5 125 000,01")
+           "5,125,000.01")
+        "A number with spaces as group separator")
+    (is (= (convert-amount {:amount-decimal-separator {:value \,}
+                            :amount-grouping-separator {:value \space}} "-7 000,00")
+           "-7,000.00")
+        "Another number with spaces as group separator")
+    (is (= (convert-amount {:amount-decimal-separator {:value \.}
+                            :amount-grouping-separator {:value \_}} "9123_4567.89")
+           "91,234,567.89")
+        "A number with custom spaced underscores as group separator")
     (is (= (convert-amount  {:amount-decimal-separator {:value \.}
                              :amount-grouping-separator {:value \,}} "usd 10,123.45")
            "10,123.45")
-        "A number with a currency prefix and standard separators should be parsed correctly.")
+        "A number with a currency prefix and standard separators")
     (is (= (convert-amount {:amount-decimal-separator {:value \.}
                             :amount-grouping-separator {:value \,}}
                            "-1234,5671.28")
            "-12,345,671.28")
-        "A number with custom spacing for groups should be parsed correctly.")))
+        "A number with custom spacing for groups")))
 
 (deftest test-unquote-string
   (testing "unquote-string"

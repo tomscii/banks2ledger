@@ -26,7 +26,7 @@ fi
 
 echo -n "testing ica.csv... "
 lein run -l $LEDGER -f test/data/ica.csv -F ';' -sa 1 -m 4 -t '%1' \
-	-a 'Assets:ICA Account' -ds "," -gs "." > test/data/ica.out
+	-a 'Assets:ICA Account' -ds "," -gs " " > test/data/ica.out
 diff -u test/data/ica.out test/data/ica.ref-out >/dev/null; export RC=$?
 if [ $RC -ne 0 ]; then
     echo "FAIL, inspect ica.out!"

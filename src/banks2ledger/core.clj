@@ -182,13 +182,11 @@
 
    :amount-decimal-separator
    {:opt "-ds" :value "." :conv-fun #(first %)
-    :help "Sets the character used for decimal sign. See the test file
-    for examples on the usage of this option."}
+    :help "Decimal sign character"}
 
    :amount-grouping-separator
    {:opt "-gs" :value "," :conv-fun #(first %)
-    :help "Sets the character used for thousands separator. See the
-    test file for examples on the usage of this option."}})
+    :help "Decimal group (thousands) separator character"}})
 
 (defn print-usage-and-die [message]
   (println message)
@@ -243,18 +241,14 @@
    (.parse (java.text.SimpleDateFormat. (get-arg args-spec :date-format))
            datestr)))
 
-;; Removes everything up to a digit (with an optional minus char) in a
-;; string. The purpose of this is to enable the `convert-amount`
-;; function to deal with unexpected prefixes in amount values.
+;; Remove everything up to a number (an optional minus followed by a digit)
 (defn remove-leading-garbage [s]
   (let [up-to-a-digit-re #".+?(?=-?\d)"]
     (clojure.string/replace-first (str " " s) up-to-a-digit-re "")))
 
 ;; Convert amount string - note the return value is still a string!
 (defn convert-amount [args-spec string]
-  (let [pattern "#,#.#" ;; see
-                        ;; https://docs.oracle.com/javase/10/docs/api/java/text/DecimalFormat.html
-                        ;; to understand this pattern.
+  (let [pattern "#,#.#" ;; see java DecimalFormat
         dfs (doto (java.text.DecimalFormatSymbols.)
               (.setDecimalSeparator  (get-arg args-spec :amount-decimal-separator))
               (.setGroupingSeparator (get-arg args-spec :amount-grouping-separator)))
