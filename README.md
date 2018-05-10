@@ -45,6 +45,11 @@ run`.
              default: 2
         -t : Text (descriptor) column index specs (zero-based)
              default: %3
+       -ds : Decimal sign character
+             default: .
+       -gs : Decimal group (thousands) separator character
+             default: ,
+
 
 `banks2ledger` will write ledger transactions to standard output. It
 will not modify the contents of any file unless you use an output
@@ -55,6 +60,8 @@ correctly parsed (no guessing there). It also expects to be able to
 read your main ledger file containing all those transactions that will
 form the basis of the Bayesian inference for newly created
 transactions.
+
+### CSV column mapping
 
 The default value for `-r` (-1) means that in case you don't have a
 reference column in the CSV, you can simply omit this option and no
@@ -83,6 +90,30 @@ Examples to provide as the `-t` option:
  - `"%4!%1 %2 %3!%7"`: fourth column by default, but if that is empty
    (contains only whitespace) concatenate the first three columns; if
    that in turn is empty, take the seventh column.
+
+### Amount format
+
+The `-ds` and `-gs` options allow parsing almost arbitrarily formatted
+decimal numbers from the amount column. Their usage is entirely
+optional. With both options omitted, the accepted numbers are of the
+usual "Western" format, i.e., a string of digits starting with an
+optional minus for negative numbers, grouped with optional commas for
+thousands (or other) separation, followed by an optional fractional
+part after a decimal dot.
+
+Evident garbage (text that cannot be possibly part of a number) both
+before and after the number is implicitly discarded, so having a
+currency as part of the amount field should not be a problem.
+
+Examples of setting `-ds` and `-gs` for parsing different amount
+formats:
+
+|   Example amount | Parse options     |
+|-----------------:|-------------------|
+| `"1,234,567.89"` | *(defaults)*      |
+| `"1.234.567,89"` | `-ds ',' -gs '.'` |
+| `"1 234 567,89"` | `-ds ',' -gs ' '` |
+|  `"123_4567.89"` |         `-gs '_'` |
 
 ## Status
 

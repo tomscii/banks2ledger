@@ -178,7 +178,15 @@
 
    :descr-col
    {:opt "-t" :value "%3"
-    :help "Text (descriptor) column index specs (zero-based)"}})
+    :help "Text (descriptor) column index specs (zero-based)"}
+
+   :amount-decimal-separator
+   {:opt "-ds" :value "." :conv-fun #(first %)
+    :help "Decimal sign character"}
+
+   :amount-grouping-separator
+   {:opt "-gs" :value "," :conv-fun #(first %)
+    :help "Decimal group (thousands) separator character"}})
 
 (defn print-usage-and-die [message]
   (println message)
@@ -233,16 +241,23 @@
    (.parse (java.text.SimpleDateFormat. (get-arg args-spec :date-format))
            datestr)))
 
+;; Remove everything up to a number (an optional minus followed by a digit)
+(defn remove-leading-garbage [s]
+  (let [up-to-a-digit-re #".+?(?=-?\d)"]
+    (clojure.string/replace-first (str " " s) up-to-a-digit-re "")))
+
 ;; Convert amount string - note the return value is still a string!
-;; - strip anything that does not belong to the number
-;; - change decimal comma to dot
-(defn convert-amount [string]
-  (->>
-   (-> (re-find #"-?\d[\d ]*[,\.]?\d*" string)
-       (clojure.string/replace #"," ".")
-       (.replace " " "")
-       (Double.))
-   (format "%,.2f")))
+(defn convert-amount [args-spec string]
+  (let [pattern "#,#.#" ;; see java DecimalFormat
+        dfs (doto (java.text.DecimalFormatSymbols.)
+              (.setDecimalSeparator  (get-arg args-spec :amount-decimal-separator))
+              (.setGroupingSeparator (get-arg args-spec :amount-grouping-separator)))
+        df (java.text.DecimalFormat. pattern dfs)]
+    (->> string
+         remove-leading-garbage
+         (.parse df)
+         double
+         (format "%,.2f"))))
 
 ;; Remove quotes from start & end of the string, if both present
 (defn unquote-string [str]
@@ -307,7 +322,7 @@
   (let [ref-col (get-arg params :ref-col)]
     {:date (convert-date params (nth cols (get-arg params :date-col)))
      :ref (if (< ref-col 0) nil (unquote-string (nth cols ref-col)))
-     :amount (convert-amount (nth cols (get-arg params :amount-col)))
+     :amount (convert-amount params (nth cols (get-arg params :amount-col)))
      :descr (unquote-string (get-col cols (get-arg params :descr-col)))}))
 
 ;; Drop the configured number of header and trailer lines
