@@ -25,6 +25,8 @@ run`.
              default: ledger.dat
         -f : Input transactions in CSV format
              default: transactions.csv
+        -e : Encoding of the CSV file
+             default: UTF-8
         -a : Originating account of transactions
              default: Assets:Checking
         -F : CSV field separator
