@@ -51,7 +51,8 @@ run`.
              default: .
        -gs : Decimal group (thousands) separator character
              default: ,
-
+      -dbg : Include debug information in the generated output
+             default: false
 
 `banks2ledger` will write ledger transactions to standard output. It
 will not modify the contents of any file unless you use an output

@@ -3,6 +3,10 @@
             clojure.java.io)
   (:gen-class))
 
+;; Set to true to include debug information in the generated output.
+;; To set this at runtime, add '-dbg true' to the argument list.
+(def +debug+ false)
+
 ;; Bump account's token counter for token
 (defn toktab-inc [toktab [account token]]
   (let [acctab0 (or (get toktab account) {})
@@ -84,6 +88,19 @@
 (defn account-for-descr [acc-maps descr account]
   (let [tokens (tokenize descr)
         p_tab (p_table acc-maps tokens)]
+
+    (if +debug+ (do
+      (printf "; Deciding \"%s\" for %s\n", descr, account)
+      (printf "; Tokens: ") (print tokens) (printf "\n")
+      (printf "; Account probabilities per token:\n")
+      (doseq [tok tokens]
+        (printf ";  '%s':\n" tok)
+        (doseq [p (best-accounts acc-maps tok)]
+          (printf ";     %40s %f\n" (second p) (first p))))
+      (printf "; Combined probability table:\n")
+      (doseq [e p_tab]
+        (printf ";     %40s %f\n" (second e) (first e)))))
+
     (filter #(= false (.contains ^String (second %) account)) p_tab)))
 
 (defn decide-account [acc-maps descr account]
@@ -191,7 +208,11 @@
 
    :amount-grouping-separator
    {:opt "-gs" :value "," :conv-fun #(first %)
-    :help "Decimal group (thousands) separator character"}))
+    :help "Decimal group (thousands) separator character"}
+
+   :debug
+   {:opt "-dbg" :value false
+    :help "Include debug information in the generated output"}))
 
 (defn print-usage-and-die [message]
   (println message)
@@ -364,6 +385,7 @@
 (defn -main [& args]
   (let [params (parse-args cl-args-spec args)
         acc-maps (parse-ledger (get-arg params :ledger-file))]
+    (def +debug+ (get-arg params :debug))
     (with-open [reader (clojure.java.io/reader
                            (get-arg params :csv-file)
                            :encoding (get-arg params :csv-file-encoding))]
