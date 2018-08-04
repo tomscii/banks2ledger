@@ -51,6 +51,8 @@ run`.
              default: .
        -gs : Decimal group (thousands) separator character
              default: ,
+       -hf : Hooks file defining customized output entries
+             default: nil
       -dbg : Include debug information in the generated output
              default: false
 
@@ -117,6 +119,19 @@ formats:
 | `"1.234.567,89"` | `-ds ',' -gs '.'` |
 | `"1 234 567,89"` | `-ds ',' -gs ' '` |
 |  `"123_4567.89"` |         `-gs '_'` |
+
+### Custom hooks to generate output transactions
+
+The option `-hf` allows passing a file containing Clojure code that
+defines custom hooks. These hooks are invoked when generating the
+output ledger entries; the hooks have the ability to alter the output
+for certain transactions. This mechanism provides high flexibility as
+all data concerning the ledger entry, as well as the full power of
+Clojure (and several helper functions in the code of `banks2ledger`)
+are available to the hook.
+
+An example hooks file is provided as part of the test suite at
+`test/data/hooks.clj`.
 
 ## Status
 

@@ -294,3 +294,33 @@
     (is (= (get-col ["   " "2nd" "3rd"] "%0 %2!%1") "3rd"))
     (is (= (get-col ["   " "2nd" "3rd"] "%0!%1%0%2!%2") "2nd   3rd"))
     (is (= (get-col ["   " "2nd" "3rd"] "%0!%1%0!%2") "2nd"))))
+
+(deftest test-print-ledger-entry
+  (testing "print-ledger-entry"
+    (is (= (with-out-str
+             (print-ledger-entry
+               {:date "2018-07-21"
+                :descr "Custom Shop Extra"
+                :verifs [{:comment "This is a comment"}
+                         {:account "Expenses:Random"
+                          :amount "123.45"
+                          :currency "SEK"}
+                         {:account "Assets:Pocket"}]}))
+           (str "2018-07-21 Custom Shop Extra\n"
+                "    ; This is a comment\n"
+                "    Expenses:Random                       SEK 123.45\n"
+                "    Assets:Pocket\n\n")))
+    (is (= (with-out-str
+             (print-ledger-entry
+               {:date "2018-07-21"
+                :ref "1234567890"
+                :descr "Custom Shop Extra"
+                :verifs [{:comment "This is a comment"}
+                         {:account "Expenses:Random"
+                          :amount "123.45"
+                          :currency "SEK"}
+                         {:account "Assets:Pocket"}]}))
+           (str "2018-07-21 (1234567890) Custom Shop Extra\n"
+                "    ; This is a comment\n"
+                "    Expenses:Random                       SEK 123.45\n"
+                "    Assets:Pocket\n\n")))))

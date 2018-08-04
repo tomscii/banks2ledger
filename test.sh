@@ -38,7 +38,7 @@ fi
 
 echo -n "testing seb.csv... "
 lein run -l $LEDGER -f test/data/seb.csv -sa 5 -r 2 -m 4 -t '%3' \
-     -a 'Assets:SEB Account' > test/data/seb.out
+     -hf test/data/hooks.clj -a 'Assets:SEB Account' > test/data/seb.out
 diff -u test/data/seb.out test/data/seb.ref-out >/dev/null; export RC=$?
 if [ $RC -ne 0 ]; then
     echo "FAIL, inspect seb.out!"

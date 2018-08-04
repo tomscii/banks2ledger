@@ -210,6 +210,10 @@
    {:opt "-gs" :value "," :conv-fun #(first %)
     :help "Decimal group (thousands) separator character"}
 
+   :hooks-file
+   {:opt "-hf" :value nil
+    :help "Hooks file defining customized output entries"}
+
    :debug
    {:opt "-dbg" :value false
     :help "Include debug information in the generated output"}))
@@ -365,30 +369,81 @@
        (drop-lines params))
    (mapv (partial parse-csv-entry params))))
 
-;; format and print a ledger entry to *out*
-(defn print-ledger-entry [params acc-maps
-                          {:keys [date ref amount descr] :as cm}]
+;; print a ledger entry to *out*
+;; An entry has a list of verifications (transaction entries),
+;; each of them will produce a line of output. Each line is
+;; either a comment or an entry containing an account and
+;; optionally an amount and currency.
+(defn print-ledger-entry [entry]
+  (let [ref (:ref entry)
+        verifs (:verifs entry)]
+    (printf "%s " (:date entry))
+    (if (and ref (not (empty? ref))) (printf "(%s) " ref))
+    (println (:descr entry))
+    (doseq [verif verifs]
+      (let [comment (:comment verif)
+            account (:account verif)
+            amount (:amount verif)]
+        (if (nil? comment)
+          (if (nil? amount)
+            (printf "    %s\n" account)
+            (printf "    %-38s%s %s\n" account (:currency verif) amount))
+          (printf "    ; %s\n" comment))))
+    (println)))
+
+;; generate verifications for the default case
+(defn add-default-verifications [entry]
+  (let [amount (:amount entry)
+        currency (:currency entry)
+        account (:account entry)
+        counter-acc (:counter-acc entry)]
+    (if (= \- (first amount))
+      (conj entry [:verifs [{:account counter-acc
+                             :amount (subs amount 1)
+                             :currency currency}
+                            {:account account}]])
+      (conj entry [:verifs [{:account account
+                             :amount amount
+                             :currency currency}
+                            {:account counter-acc}]]))))
+
+;; hooks allow the user to generate custom output for certain entries
+(def +ledger-entry-hooks+ nil)
+
+(defn add-entry-hook [hook]
+  (def +ledger-entry-hooks+ (conj +ledger-entry-hooks+ hook)))
+
+(defn process-hooks [entry]
+  (loop [hooks +ledger-entry-hooks+]
+    (let [hook (first hooks)
+          rest (rest hooks)]
+      (if (nil? hook)
+        (print-ledger-entry (add-default-verifications entry))
+        (if ((:predicate hook) entry)
+          (if (:formatter hook)
+            ((:formatter hook) entry))
+          (recur rest))))))
+
+;; generate a ledger entry -- invoke user-defined hooks
+(defn generate-ledger-entry [params acc-maps
+                             {:keys [date ref amount descr] :as cm}]
   (let [account (get-arg params :account)
         counter-acc (decide-account acc-maps descr account)
-        currency (get-arg params :currency)]
-  (printf "%s " date)
-  (if (and ref (not (empty? ref))) (printf "(%s) " ref))
-  (println descr)
-  (if (= \- (first amount))
-    (do (printf "    %-38s%s %s\n" counter-acc currency (subs amount 1))
-        (printf "    %s\n" account))
-    (do (printf "    %-38s%s %s\n" account currency amount)
-        (printf "    %s\n" counter-acc)))
-  (println)))
+        currency (get-arg params :currency)
+        entry {:date date :ref ref :amount amount :currency currency
+               :account account :counter-acc counter-acc :descr descr}]
+     (process-hooks entry)))
 
 ;; Convert CSV of bank account transactions to corresponding ledger entries
 (defn -main [& args]
   (let [params (parse-args cl-args-spec args)
         acc-maps (parse-ledger (get-arg params :ledger-file))]
     (def +debug+ (get-arg params :debug))
+    (if (not (nil? (get-arg params :hooks-file)))
+      (load-file (get-arg params :hooks-file)))
     (with-open [reader (clojure.java.io/reader
                            (get-arg params :csv-file)
                            :encoding (get-arg params :csv-file-encoding))]
       (let [lines (parse-csv reader params)]
-        (mapv (partial print-ledger-entry params acc-maps) lines))
+        (mapv (partial generate-ledger-entry params acc-maps) lines))
       (flush))))
