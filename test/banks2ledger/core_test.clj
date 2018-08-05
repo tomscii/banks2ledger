@@ -184,6 +184,20 @@
     (is (= (convert-date {:date-format {:value "yyyy/MM/dd"}} "2016/04/24")
            "2016/04/24"))))
 
+(deftest test-format-value
+  (testing "format-value"
+    (is (= (format-value 0.0) "0.00"))
+    (is (= (format-value -10.237) "-10.24"))
+    (is (= (format-value 1234.56) "1,234.56"))
+    (is (= (format-value 1234567.89) "1,234,567.89"))))
+
+(deftest test-amount-value
+  (testing "amount-value"
+    (is (= (amount-value "0.00") 0.0))
+    (is (= (amount-value "-10.24") -10.24))
+    (is (= (amount-value "1,234.56") 1234.56))
+    (is (= (amount-value "1,234,567.89") 1234567.89))))
+
 (deftest test-convert-amount
   (testing "convert-amount"
     (is (= (convert-amount {:amount-decimal-separator {:value \,}

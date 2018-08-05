@@ -276,7 +276,11 @@
   (let [up-to-a-digit-re #".+?(?=-?\d)"]
     (clojure.string/replace-first (str " " s) up-to-a-digit-re "")))
 
-;; Convert amount string - note the return value is still a string!
+;; Convert a double value to a canonically formatted amount
+(defn format-value [value]
+  (format "%,.2f" value))
+
+;; Convert CSV amount string - note the return value is still a string!
 (defn convert-amount [args-spec string]
   (let [pattern "#,#.#" ;; see java DecimalFormat
         dfs (doto (java.text.DecimalFormatSymbols.)
@@ -287,7 +291,17 @@
          remove-leading-garbage
          (.parse df)
          double
-         (format "%,.2f"))))
+         format-value)))
+
+;; Return the value of a canonically formatted amount string,
+;; e.g., returned by convert-amount
+(defn amount-value [amount]
+  (let [pattern "#,#.#" ;; see java DecimalFormat
+        dfs (doto (java.text.DecimalFormatSymbols.))
+        df (java.text.DecimalFormat. pattern dfs)]
+    (->> amount
+         (.parse df)
+         double)))
 
 ;; Remove quotes from start & end of the string, if both present
 (defn unquote-string [str]
