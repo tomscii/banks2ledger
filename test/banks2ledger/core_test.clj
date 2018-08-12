@@ -338,3 +338,96 @@
                 "    ; This is a comment\n"
                 "    Expenses:Random                       SEK 123.45\n"
                 "    Assets:Pocket\n\n")))))
+
+;; Example hook formatters for testing
+;; See also: https://tomszilagyi.github.io/2018/08/Custom-transactions-in-banks2ledger
+
+(defn round [x]
+  (double (Math/round x)))
+
+(defn simple-salary-hook-formatter [entry]
+  (let [amount (:amount entry)
+        currency (:currency entry)
+        year (subs (:date entry) 0 4)
+        verifs [{:comment "Pay stub data"}
+                {:account (format "Tax:%s:GrossIncome" year)
+                 :amount "-00,000.00"
+                 :currency currency}
+                {:account (format "Tax:%s:IncomeTax" year)
+                 :amount "0,000.00"
+                 :currency currency}
+                {:account (format "Tax:%s:NetIncome" year)}
+                {:comment "Distribution of net income"}
+                {:account (:account entry)
+                 :amount amount
+                 :currency currency}
+                {:account "Income:Salary"
+                 :amount (str "-" amount)
+                 :currency currency}]]
+    (print-ledger-entry (conj entry [:verifs verifs]))))
+
+(defn advanced-salary-hook-formatter [entry]
+  (let [gross-salary 38500.0
+        spp-contrib (round (* 0.05 gross-salary))
+        recv-amount (amount-value (:amount entry))
+        net-salary (+ recv-amount spp-contrib)
+        income-tax (- gross-salary net-salary)
+        currency (:currency entry)
+        year (subs (:date entry) 0 4)
+        verifs [{:comment "Pay stub data"}
+                {:account (format "Tax:%s:GrossIncome" year)
+                 :amount (format-value (- gross-salary))
+                 :currency currency}
+                {:account (format "Tax:%s:IncomeTax" year)
+                 :amount (format-value income-tax)
+                 :currency currency}
+                {:account (format "Tax:%s:NetIncome" year)}
+                {:comment "Distribution of net income"}
+                {:account "Income:Salary"
+                 :amount (format-value (- net-salary))
+                 :currency currency}
+                {:account "Equity:SPP:Collect"
+                 :amount (format-value spp-contrib)
+                 :currency currency}
+                {:account (:account entry)
+                 :amount (:amount entry)
+                 :currency currency}]]
+    (print-ledger-entry (conj entry [:verifs verifs]))))
+
+;; Verify the hook formatters defined above
+
+(deftest test-print-ledger-entry-via-hook-formatters
+  (testing "print-ledger-entry-via-hook-formatters"
+    (is (= (with-out-str
+             (simple-salary-hook-formatter
+               {:date "2017/07/25"
+                :descr "LÖN"
+                :ref "TXN123456789"
+                :account "Assets:Bank:Account"
+                :amount "29,290.00"
+                :currency "SEK"}))
+           (str "2017/07/25 (TXN123456789) LÖN\n"
+                "    ; Pay stub data\n"
+                "    Tax:2017:GrossIncome                  SEK -00,000.00\n"
+                "    Tax:2017:IncomeTax                    SEK 0,000.00\n"
+                "    Tax:2017:NetIncome\n"
+                "    ; Distribution of net income\n"
+                "    Assets:Bank:Account                   SEK 29,290.00\n"
+                "    Income:Salary                         SEK -29,290.00\n\n")))
+    (is (= (with-out-str
+             (advanced-salary-hook-formatter
+               {:date "2018/07/25"
+                :descr "LÖN"
+                :ref "TXN123456789"
+                :account "Assets:Bank:Account"
+                :amount "27,365.00"
+                :currency "SEK"}))
+           (str "2018/07/25 (TXN123456789) LÖN\n"
+                "    ; Pay stub data\n"
+                "    Tax:2018:GrossIncome                  SEK -38,500.00\n"
+                "    Tax:2018:IncomeTax                    SEK 9,210.00\n"
+                "    Tax:2018:NetIncome\n"
+                "    ; Distribution of net income\n"
+                "    Income:Salary                         SEK -29,290.00\n"
+                "    Equity:SPP:Collect                    SEK 1,925.00\n"
+                "    Assets:Bank:Account                   SEK 27,365.00\n\n")))))

@@ -9,42 +9,42 @@
 ;; Nevertheless, we want to avoid having to type (or copy-paste)
 ;; the whole template each month.
 
-(defn income-formatter [income-account]
-  #(let [year (subs (:date %1) 0 4)
-         verifs [{:comment "Pay stub data"}
-                 {:account (format "Tax:%s:GrossIncome" year)
-                  :amount "-00,000.00"
-                  :currency (:currency %1)}
-                 {:account (format "Tax:%s:IncomeTax" year)
-                  :amount "00,000.00"
-                  :currency (:currency %1)}
-                 {:account (format "Tax:%s:NetIncome" year)}
-                 {:comment "Distribution of net income"}
-                 {:account income-account
-                  :amount (format "-%s" (:amount %1))
-                  :currency (:currency %1)}
-                 {:account (:account %1)
-                  :amount (:amount %1)
-                  :currency (:currency %1)}]]
-     (print-ledger-entry (conj %1 [:verifs verifs]))))
+(defn income-formatter [income-account entry]
+  (let [year (subs (:date entry) 0 4)
+        verifs [{:comment "Pay stub data"}
+                {:account (format "Tax:%s:GrossIncome" year)
+                 :amount "-00,000.00"
+                 :currency (:currency entry)}
+                {:account (format "Tax:%s:IncomeTax" year)
+                 :amount "00,000.00"
+                 :currency (:currency entry)}
+                {:account (format "Tax:%s:NetIncome" year)}
+                {:comment "Distribution of net income"}
+                {:account income-account
+                 :amount (format "-%s" (:amount entry))
+                 :currency (:currency entry)}
+                {:account (:account entry)
+                 :amount (:amount entry)
+                 :currency (:currency entry)}]]
+    (print-ledger-entry (conj entry [:verifs verifs]))))
 
 
 ;; Define a hook to customize salary income transactions
 
-(defn salary-hook-predicate []
-  #(some #{"LÖN"} (tokenize (:descr %1))))
+(defn salary-hook-predicate [entry]
+  (some #{"LÖN"} (tokenize (:descr entry))))
 
-(add-entry-hook {:predicate (salary-hook-predicate)
-                 :formatter (income-formatter "Income:Salary")})
+(add-entry-hook {:predicate #(salary-hook-predicate %1)
+                 :formatter #(income-formatter "Income:Salary" %1)})
 
 
 ;; Define a hook to customize social security income transactions
 
-(defn fkassa-hook-predicate []
-  #(some #{"FKASSA"} (tokenize (:descr %1))))
+(defn fkassa-hook-predicate [entry]
+  (some #{"FKASSA"} (tokenize (:descr entry))))
 
-(add-entry-hook {:predicate (fkassa-hook-predicate)
-                 :formatter (income-formatter "Income:Fkassa")})
+(add-entry-hook {:predicate #(fkassa-hook-predicate %1)
+                 :formatter #(income-formatter "Income:Fkassa" %1)})
 
 
 ;; Define a hook to completely discard matching transactions

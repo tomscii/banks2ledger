@@ -131,7 +131,8 @@ Clojure (and several helper functions in the code of `banks2ledger`)
 are available to the hook.
 
 An example hooks file is provided as part of the test suite at
-`test/data/hooks.clj`.
+`test/data/hooks.clj`. A [detailed tutorial][hooks-tutorial] on this
+feature is also available.
 
 ## Status
 
@@ -166,5 +167,6 @@ roll a `Makefile` or similar solution to process your input files; see
 
 
 [this article]:               https://tomszilagyi.github.io/payment-matching
+[hooks-tutorial]:             https://tomszilagyi.github.io/2018/08/Custom-transactions-in-banks2ledger
 [Clojure]:                    http://clojure.org
 [Leiningen]:                  http://leiningen.org
