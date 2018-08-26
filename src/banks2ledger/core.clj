@@ -337,7 +337,7 @@
 ;; return whitespace-trimmed version.
 (defn format-colspec [cols colspec]
   (-> colspec
-      (clojure.string/replace #"\%(\d)*"
+      (clojure.string/replace #"\%(\d*)"
              #(unquote-string (nth cols (Integer. (second %1)))))
       (clojure.string/trim)))
 

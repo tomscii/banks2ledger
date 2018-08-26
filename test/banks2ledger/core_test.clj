@@ -297,7 +297,8 @@
     (is (= (format-colspec ["\"1st\"" "\"2nd\"" "\"3rd\""] "%0 %2") "1st 3rd"))
     (is (= (format-colspec ["1st" "2nd" "3rd"] "%1-%0-%2") "2nd-1st-3rd"))
     (is (= (format-colspec ["1st" "2nd" "   "] "%0 %2") "1st"))
-    (is (= (format-colspec ["1st" "2nd" "   "] "%0 %2 %1") "1st     2nd"))))
+    (is (= (format-colspec ["1st" "2nd" "   "] "%0 %2 %1") "1st     2nd"))
+    (is (= (format-colspec (vec (map str (range 1 12))) "%10") "11"))))
 
 (deftest test-get-col
   (testing "get-col"
@@ -307,7 +308,8 @@
     (is (= (get-col ["   " "2nd" "3rd"] "%0!%1!%2") "2nd"))
     (is (= (get-col ["   " "2nd" "3rd"] "%0 %2!%1") "3rd"))
     (is (= (get-col ["   " "2nd" "3rd"] "%0!%1%0%2!%2") "2nd   3rd"))
-    (is (= (get-col ["   " "2nd" "3rd"] "%0!%1%0!%2") "2nd"))))
+    (is (= (get-col ["   " "2nd" "3rd"] "%0!%1%0!%2") "2nd"))
+    (is (= (get-col (vec (map str (range 1 12))) "%10") "11"))))
 
 (deftest test-print-ledger-entry
   (testing "print-ledger-entry"
